@@ -1,0 +1,9 @@
+<div id="editor" contenteditable="false"></div>
+
+<script>
+fetch('content.json')
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById('editor').innerHTML = data.text;
+  });
+</script>
