@@ -1,9 +1,90 @@
-<div id="editor" contenteditable="false"></div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSPNews Live Editor</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  #editor { border: 1px solid #ccc; min-height: 300px; padding: 10px; margin-bottom: 10px; }
+  #save { padding: 5px 10px; }
+  #status { margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<h1>SSPNews Live Editor</h1>
+<div id="editor" contenteditable="true">Loading content...</div>
+<button id="save">Save Changes</button>
+<p id="status"></p>
 
 <script>
-fetch('content.json')
-  .then(res => res.json())
-  .then(data => {
-    document.getElementById('editor').innerHTML = data.text;
+  // ==== CONFIGURATION ====
+  const username = "XxX9Void9XxX";        // Your GitHub username
+  const repo = "sspnews";                  // Your repository name
+  const path = "content.json";             // File to edit
+  const branch = "main";                   // Branch name
+  const token = "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"; 
+
+  const editor = document.getElementById("editor");
+  const status = document.getElementById("status");
+
+  // ==== LOAD CONTENT FROM GITHUB ====
+  async function loadContent() {
+    try {
+      const url = `https://api.github.com/repos/${username}/${repo}/contents/${path}?ref=${branch}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const content = atob(data.content);
+      const json = JSON.parse(content);
+      editor.innerText = json.text || "";
+      editor.dataset.sha = data.sha; // store SHA for updates
+      status.innerText = "Content loaded!";
+    } catch (err) {
+      editor.innerText = "Failed to load content.";
+      console.error(err);
+    }
+  }
+
+  loadContent();
+
+  // ==== SAVE CONTENT TO GITHUB ====
+  document.getElementById("save").addEventListener("click", async () => {
+    const contentText = editor.innerText;
+    const sha = editor.dataset.sha;
+    const url = `https://api.github.com/repos/${username}/${repo}/contents/${path}`;
+
+    const body = {
+      message: "Update via live editor",
+      content: btoa(JSON.stringify({ text: contentText })),
+      sha: sha,
+      branch: branch
+    };
+
+    try {
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Authorization": `token ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      const result = await res.json();
+      if (result.content) {
+        editor.dataset.sha = result.content.sha;
+        status.innerText = "Saved successfully!";
+      } else {
+        console.error(result);
+        status.innerText = "Error saving content.";
+      }
+    } catch (err) {
+      console.error(err);
+      status.innerText = "Error saving content.";
+    }
   });
 </script>
+
+</body>
+</html>
